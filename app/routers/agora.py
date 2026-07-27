@@ -54,6 +54,10 @@ def get_rtm_token(
         token=token
     )
 
+@router.get("/webhook")
+def agora_webhook_health():
+    return {"status": "ok", "message": "Agora Webhook Endpoint Active"}
+
 @router.post("/webhook")
 async def agora_webhook(request: Request, db: Session = Depends(get_db)):
     """
@@ -61,6 +65,9 @@ async def agora_webhook(request: Request, db: Session = Depends(get_db)):
     Handles RTC Channel Events (101: channel create, 102: channel destroy, 103: broadcaster join, 104: leave)
     """
     body_bytes = await request.body()
+    if not body_bytes:
+        return {"status": "ok", "message": "Health check received"}
+
     
     # Verify signature if Agora signature header is present
     agora_signature = request.headers.get("Agora-Signature") or request.headers.get("agora-signature")
