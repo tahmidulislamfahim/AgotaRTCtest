@@ -11,5 +11,6 @@ requests>=2.31.0
 cryptography>=41.0.0
 httpx>=0.28.0
 email-validator>=2.0.0
+agora-token-builder>=1.0.0
 
 
