@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: agora-fastapi-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: AGORA_APP_ID
+        sync: false
+      - key: AGORA_PRIMARY_CERTIFICATE
+        sync: false
+      - key: AGORA_WEBHOOK_SECRET
+        sync: false
+      - key: AGORA_CHAT_REST_URL
+        value: https://a61.chat.agora.io
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 1440
+      - key: DATABASE_URL
+        value: sqlite:///./agora_test.db
