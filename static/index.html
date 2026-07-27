@@ -10,7 +10,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <!-- Agora Web SDK v4 -->
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.20.0.js"></script>
+
     <style>
         :root {
             --bg-dark: #0a0e17;
@@ -150,40 +152,68 @@
             border: 1px solid var(--border-color);
             border-radius: 8px;
             color: #fff;
-            margin-bottom: 10px;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+            outline: none;
         }
 
         input:focus {
-            outline: none;
             border-color: var(--primary);
         }
 
-        /* User List */
-        .user-list {
+        .hidden { display: none !important; }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        .user-list, .notif-list {
             list-style: none;
             overflow-y: auto;
             flex-grow: 1;
         }
 
-        .user-item {
+        .user-item, .notif-item {
             padding: 12px;
-            border-radius: 10px;
             background: rgba(255, 255, 255, 0.03);
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 10px;
             cursor: pointer;
-            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
         }
 
         .user-item:hover, .user-item.active {
-            background: rgba(99, 102, 241, 0.2);
-            border: 1px solid rgba(99, 102, 241, 0.3);
+            background: rgba(99, 102, 241, 0.15);
+            border-color: var(--primary);
         }
 
-        /* Chat Window */
+        .notif-item.unread {
+            border-left: 4px solid var(--secondary);
+            background: rgba(6, 182, 212, 0.08);
+        }
+
         .chat-messages {
             flex-grow: 1;
             overflow-y: auto;
@@ -194,7 +224,7 @@
         }
 
         .message-bubble {
-            max-width: 75%;
+            max-width: 70%;
             padding: 10px 14px;
             border-radius: 12px;
             font-size: 0.9rem;
@@ -210,18 +240,29 @@
 
         .message-received {
             align-self: flex-start;
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
             border-bottom-left-radius: 2px;
         }
 
-        .message-call-log {
-            align-self: center;
-            background: rgba(6, 182, 212, 0.15);
-            border: 1px dashed var(--secondary);
-            color: var(--secondary);
-            font-size: 0.8rem;
-            text-align: center;
+        .call-card {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .token-box {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            word-break: break-all;
+            color: #34d399;
+            margin-top: 6px;
         }
 
         .chat-input-area {
@@ -230,72 +271,37 @@
             margin-top: 10px;
         }
 
-        /* Call Overlay & Token Display */
-        .call-card {
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid var(--primary);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
+        .chat-input-area input {
+            margin-bottom: 0;
         }
 
-        .token-box {
+        .video-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+            height: 220px;
+        }
+
+        .video-box {
             background: #000;
-            padding: 8px;
-            border-radius: 6px;
-            font-family: monospace;
-            font-size: 0.75rem;
-            word-break: break-all;
-            color: #34d399;
-            max-height: 60px;
-            overflow-y: auto;
-            margin-top: 5px;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
         }
 
-        /* Notifications */
-        .notif-list {
-            overflow-y: auto;
-            flex-grow: 1;
-            list-style: none;
-        }
-
-        .notif-item {
-            padding: 12px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.04);
-            margin-bottom: 8px;
-            border-left: 3px solid var(--secondary);
-            font-size: 0.85rem;
-        }
-
-        .notif-item.unread {
-            border-left-color: var(--accent-call);
-            background: rgba(16, 185, 129, 0.1);
-        }
-
-        .tab-buttons {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 8px;
-            background: rgba(0, 0, 0, 0.3);
-            border: none;
-            color: var(--text-muted);
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-
-        .tab-btn.active {
-            background: var(--primary);
+        .video-label {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            font-size: 11px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 3px 8px;
+            border-radius: 4px;
+            z-index: 10;
             color: #fff;
         }
-
-        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -365,8 +371,18 @@
                     </div>
                     <button class="btn btn-danger" onclick="endCall()"><i class="fa-solid fa-phone-slash"></i> End Call</button>
                 </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted);">Generated RTC AccessToken2 Token:</div>
-                <div id="rtcTokenDisplay" class="token-box">Generating...</div>
+                
+                <div id="rtcTokenDisplay" class="token-box">Joining Agora RTC Channel...</div>
+
+                <!-- WebRTC Live Video Streams -->
+                <div id="videoContainer" class="video-grid">
+                    <div id="localVideo" class="video-box">
+                        <span class="video-label">Local Camera (Web)</span>
+                    </div>
+                    <div id="remoteVideo" class="video-box">
+                        <span class="video-label">Remote Participant</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Messages Window -->
@@ -405,6 +421,11 @@
         let selectedUser = null;
         let activeCall = null;
         let authMode = 'login';
+
+        // Agora RTC Web SDK State
+        let agoraClient = null;
+        let localAudioTrack = null;
+        let localVideoTrack = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             if (authToken && currentUser) {
@@ -476,10 +497,11 @@
             
             fetchUserList();
             fetchNotifications();
-            setInterval(fetchNotifications, 5000); // Polling notifications
+            setInterval(fetchNotifications, 4000); // Polling notifications
         }
 
         function logout() {
+            leaveAgoraWebRTC();
             localStorage.clear();
             location.reload();
         }
@@ -538,15 +560,10 @@
                 }
 
                 messages.forEach(msg => {
+                    const isMe = msg.sender_id === currentUser.id;
                     const div = document.createElement('div');
-                    if (msg.msg_type === 'call_log') {
-                        div.className = 'message-bubble message-call-log';
-                        div.textContent = msg.message;
-                    } else {
-                        const isMe = msg.sender_id === currentUser.id;
-                        div.className = `message-bubble ${isMe ? 'message-sent' : 'message-received'}`;
-                        div.textContent = msg.message;
-                    }
+                    div.className = `message-bubble ${isMe ? 'message-sent' : 'message-received'}`;
+                    div.textContent = msg.message;
                     chatContainer.appendChild(div);
                 });
                 chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -578,6 +595,81 @@
             }
         }
 
+        // ==========================================
+        // AGORA WEBRTC SDK V4 INTEGRATION
+        // ==========================================
+        async function joinAgoraWebRTC(appId, channelName, token, uid, callType) {
+            try {
+                if (agoraClient) await leaveAgoraWebRTC();
+
+                agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+                // Event: Remote User Published Track
+                agoraClient.on("user-published", async (user, mediaType) => {
+                    await agoraClient.subscribe(user, mediaType);
+                    console.log("Subscribed to remote user media:", user.uid, mediaType);
+                    if (mediaType === "video") {
+                        user.videoTrack.play("remoteVideo");
+                    }
+                    if (mediaType === "audio") {
+                        user.audioTrack.play();
+                    }
+                });
+
+                agoraClient.on("user-unpublished", (user, mediaType) => {
+                    console.log("Remote user unpublished:", user.uid, mediaType);
+                });
+
+                agoraClient.on("user-left", (user, reason) => {
+                    console.log("Remote user left channel:", user.uid, reason);
+                });
+
+                // Join Channel
+                await agoraClient.join(appId, channelName, token, Number(uid));
+                console.log("Successfully joined Agora WebRTC channel:", channelName, "UID:", uid);
+
+                // Publish Local Mic & Camera
+                localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+                const tracksToPublish = [localAudioTrack];
+
+                if (callType === 'video') {
+                    localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+                    localVideoTrack.play("localVideo");
+                    tracksToPublish.push(localVideoTrack);
+                }
+
+                await agoraClient.publish(tracksToPublish);
+                console.log("Published local tracks to channel");
+                document.getElementById('rtcTokenDisplay').textContent = `✅ WebRTC Active! Token: ${token.substring(0, 30)}...`;
+
+            } catch (err) {
+                console.error("Agora WebRTC Error:", err);
+                document.getElementById('rtcTokenDisplay').textContent = `❌ WebRTC Error: ${err.message}`;
+            }
+        }
+
+        async function leaveAgoraWebRTC() {
+            try {
+                if (localAudioTrack) {
+                    localAudioTrack.stop();
+                    localAudioTrack.close();
+                    localAudioTrack = null;
+                }
+                if (localVideoTrack) {
+                    localVideoTrack.stop();
+                    localVideoTrack.close();
+                    localVideoTrack = null;
+                }
+                if (agoraClient) {
+                    await agoraClient.leave();
+                    agoraClient = null;
+                }
+                console.log("Left Agora WebRTC Channel");
+            } catch (e) {
+                console.error("Error leaving Agora WebRTC:", e);
+            }
+        }
+
         async function initiateCall(callType) {
             if (!selectedUser) return;
             try {
@@ -594,6 +686,12 @@
 
                 activeCall = callData;
                 showCallOverlay(callData);
+
+                // Join Agora Channel using Web SDK
+                const token = callData.caller_rtc_token;
+                const appId = callData.agora_app_id || '5d14aebdcf754f92a51247ee5f0bfed0';
+                await joinAgoraWebRTC(appId, callData.channel_name, token, currentUser.id, callType);
+
                 fetchChatHistory();
             } catch (err) {
                 alert(err.message);
@@ -605,7 +703,6 @@
             box.classList.remove('hidden');
             document.getElementById('callStatusText').textContent = `Call Status: ${callData.status.toUpperCase()}`;
             document.getElementById('channelDisplay').textContent = `Channel: ${callData.channel_name}`;
-            document.getElementById('rtcTokenDisplay').textContent = callData.caller_rtc_token || callData.receiver_rtc_token;
         }
 
         async function endCall() {
@@ -619,6 +716,7 @@
                     },
                     body: JSON.stringify({ call_id: activeCall.id, status: 'ended' })
                 });
+                await leaveAgoraWebRTC();
                 document.getElementById('activeCallBox').classList.add('hidden');
                 activeCall = null;
                 fetchChatHistory();
@@ -695,11 +793,16 @@
                     id: callData.call_id,
                     status: 'accepted',
                     channel_name: callData.channel_name,
-                    caller_rtc_token: callData.rtc_token,
-                    receiver_rtc_token: callData.rtc_token
+                    call_type: callData.call_type || 'audio',
+                    rtc_token: callData.rtc_token
                 };
                 
                 showCallOverlay(activeCall);
+
+                // Join Agora Channel on Web
+                const appId = callData.agora_app_id || '5d14aebdcf754f92a51247ee5f0bfed0';
+                await joinAgoraWebRTC(appId, callData.channel_name, callData.rtc_token, currentUser.id, callData.call_type || 'audio');
+
                 if (notifId) markNotifRead(notifId);
                 fetchChatHistory();
             } catch (err) {
@@ -736,7 +839,7 @@
             }
         }
 
-        // Poll active call status every 3 seconds if a call is active
+        // Poll active call status
         setInterval(async () => {
             if (!activeCall || !authToken) return;
             try {
@@ -750,6 +853,7 @@
                     document.getElementById('callStatusText').textContent = `Call Status: ${current.status.toUpperCase()}`;
                     if (['ended', 'rejected', 'missed'].includes(current.status.toLowerCase())) {
                         setTimeout(() => {
+                            leaveAgoraWebRTC();
                             document.getElementById('activeCallBox').classList.add('hidden');
                             activeCall = null;
                         }, 2000);
@@ -760,4 +864,3 @@
     </script>
 </body>
 </html>
-

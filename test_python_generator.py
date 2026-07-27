@@ -5,7 +5,6 @@ import struct
 import time
 import secrets
 import zlib
-from app.config import settings
 
 class RtcTokenBuilder:
     ROLE_PUBLISHER = 1
@@ -21,7 +20,7 @@ class RtcTokenBuilder:
 
     @staticmethod
     def _pack_string(val):
-        val_bytes = val.encode('utf-8') if isinstance(val, str) else val
+        val_bytes = val.encode('utf-8')
         return struct.pack('<H', len(val_bytes)) + val_bytes
 
     @staticmethod
@@ -33,24 +32,24 @@ class RtcTokenBuilder:
 
     @classmethod
     def generate_rtc_token(cls, channel_name: str, uid: int, role: int = 1, expire_seconds: int = 3600) -> str:
-        app_id = settings.AGORA_APP_ID
-        app_certificate = settings.AGORA_PRIMARY_CERTIFICATE
-
-        if not app_id or not app_certificate:
-            raise ValueError("AGORA_APP_ID and AGORA_PRIMARY_CERTIFICATE must be configured in settings/.env")
+        app_id = "5d14aebdcf754f92a51247ee5f0bfed0"
+        app_certificate = "cb91ccc8a20d4620aef13c49e4fdc0ad"
 
         current_ts = int(time.time())
         privilege_expired_ts = current_ts + expire_seconds
         salt = secrets.randbelow(99999999) + 1
 
         # 1. Derive Signing Key
+        # key1 = HMac(app_certificate, uint32_le(current_ts))
+        # signing_key = HMac(key1, uint32_le(salt))
         issue_ts_bytes = cls._pack_uint32(current_ts)
         salt_bytes = cls._pack_uint32(salt)
 
         key1 = hmac.new(app_certificate.encode('utf-8'), issue_ts_bytes, hashlib.sha256).digest()
         signing_key = hmac.new(key1, salt_bytes, hashlib.sha256).digest()
 
-        # 2. Build signing_info payload
+        # 2. Build signing_info payload:
+        # putString(app_id) + issue_ts + expire_ts + salt + service_count(1)
         payload = (
             cls._pack_string(app_id) +
             cls._pack_uint32(current_ts) +
@@ -78,11 +77,11 @@ class RtcTokenBuilder:
 
         signing_info = payload + service_bytes
 
-        # 3. Signature
+        # 3. Signature = HMAC-SHA256(signing_key, signing_info)
         signature = hmac.new(signing_key, signing_info, hashlib.sha256).digest()
 
         # 4. Content = putString(signature) + signing_info
-        content = cls._pack_string(signature) + signing_info
+        content = cls._pack_string(signature.decode('latin1')) if False else (cls._pack_uint16(len(signature)) + signature + signing_info)
 
         # 5. Compress using zlib (deflate)
         compressed = zlib.compress(content)
@@ -90,45 +89,7 @@ class RtcTokenBuilder:
         return "007" + base64.b64encode(compressed).decode('utf-8')
 
 
-class RtmTokenBuilder:
-    @classmethod
-    def generate_rtm_token(cls, user_account: str, expire_seconds: int = 3600) -> str:
-        app_id = settings.AGORA_APP_ID
-        app_certificate = settings.AGORA_PRIMARY_CERTIFICATE
-
-        if not app_id or not app_certificate:
-            raise ValueError("AGORA_APP_ID and AGORA_PRIMARY_CERTIFICATE must be configured in settings/.env")
-
-        current_ts = int(time.time())
-        privilege_expired_ts = current_ts + expire_seconds
-        salt = secrets.randbelow(99999999) + 1
-
-        issue_ts_bytes = RtcTokenBuilder._pack_uint32(current_ts)
-        salt_bytes = RtcTokenBuilder._pack_uint32(salt)
-
-        key1 = hmac.new(app_certificate.encode('utf-8'), issue_ts_bytes, hashlib.sha256).digest()
-        signing_key = hmac.new(key1, salt_bytes, hashlib.sha256).digest()
-
-        payload = (
-            RtcTokenBuilder._pack_string(app_id) +
-            RtcTokenBuilder._pack_uint32(current_ts) +
-            RtcTokenBuilder._pack_uint32(privilege_expired_ts) +
-            RtcTokenBuilder._pack_uint32(salt) +
-            RtcTokenBuilder._pack_uint16(1)
-        )
-
-        service_type = 2 # RTM
-        privileges = {1: privilege_expired_ts}
-
-        service_bytes = (
-            RtcTokenBuilder._pack_uint16(service_type) +
-            RtcTokenBuilder._pack_map_uint32(privileges) +
-            RtcTokenBuilder._pack_string(user_account)
-        )
-
-        signing_info = payload + service_bytes
-        signature = hmac.new(signing_key, signing_info, hashlib.sha256).digest()
-        content = RtcTokenBuilder._pack_string(signature) + signing_info
-        compressed = zlib.compress(content)
-
-        return "007" + base64.b64encode(compressed).decode('utf-8')
+if __name__ == '__main__':
+    t = RtcTokenBuilder.generate_rtc_token("test_channel_123", 2)
+    print("Python Generated Token:")
+    print(t)
