@@ -7,5 +7,4 @@ __pycache__/
 agora_test.db
 *.db
 .gitignore
-config.bat
 node_modules
